@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Users, Building2, ArrowLeft, LogOut } from 'lucide-react';
 import { SessionData } from '@/types/auth';
+import { clearClientSession } from '@/lib/auth/client-session';
 
 const ADMIN_NAV = [
   { href: '/admin', label: 'Visão Geral', icon: Building2 },
@@ -21,10 +22,9 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
 
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  function handleLogout() {
+    clearClientSession();
     router.push('/login');
-    router.refresh();
   }
 
   return (

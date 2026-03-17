@@ -1,6 +1,10 @@
-import { redirect } from 'next/navigation';
+import { PLAN_IDS } from '@/lib/constants/static-params';
+import PlanRedirect from './PlanRedirect';
 
-export default async function PlanPage({ params }: { params: Promise<{ planoId: string }> }) {
-  const { planoId } = await params;
-  redirect(`/planos/${planoId}/capitulos/apresentacao`);
+export function generateStaticParams() {
+  return PLAN_IDS.map((planoId) => ({ planoId }));
+}
+
+export default function PlanPage() {
+  return <PlanRedirect />;
 }

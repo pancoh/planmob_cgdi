@@ -1,25 +1,16 @@
-'use client';
+import { PLAN_IDS, CHAPTER_SLUGS } from '@/lib/constants/static-params';
+import CapituloClient from './CapituloClient';
 
-import { useParams } from 'next/navigation';
-import { getChapterBySlug } from '@/lib/constants/capitulos';
-import ChapterEditor from '@/components/plans/ChapterEditor';
+export function generateStaticParams() {
+  const params = [];
+  for (const planoId of PLAN_IDS) {
+    for (const capituloSlug of CHAPTER_SLUGS) {
+      params.push({ planoId, capituloSlug });
+    }
+  }
+  return params;
+}
 
 export default function CapituloPage() {
-  const params = useParams();
-  const planoId = params.planoId as string;
-  const slug = params.capituloSlug as string;
-  const chapter = getChapterBySlug(slug);
-
-  if (!chapter) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--error-500)' }}>Capítulo não encontrado</h2>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-          O capítulo &quot;{slug}&quot; não existe.
-        </p>
-      </div>
-    );
-  }
-
-  return <ChapterEditor chapter={chapter} planoId={planoId} />;
+  return <CapituloClient />;
 }

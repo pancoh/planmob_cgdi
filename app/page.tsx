@@ -1,11 +1,20 @@
-import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/auth/session';
+'use client';
 
-export default async function HomePage() {
-  const session = await getSession();
-  if (session) {
-    redirect('/dashboard');
-  } else {
-    redirect('/login');
-  }
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getClientSession } from '@/lib/auth/client-session';
+
+export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const session = getClientSession();
+    if (session) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [router]);
+
+  return null;
 }

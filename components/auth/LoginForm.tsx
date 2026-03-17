@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn } from 'lucide-react';
+import { findUserByEmail } from '@/lib/mock-data';
+import { setClientSession } from '@/lib/auth/client-session';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -11,32 +13,38 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Erro ao fazer login');
-        return;
-      }
-
-      router.push('/dashboard');
-      router.refresh();
-    } catch {
-      setError('Erro de conexão. Tente novamente.');
-    } finally {
+    const user = findUserByEmail(email);
+    if (!user) {
+      setError('Credenciais inválidas');
       setLoading(false);
+      return;
     }
+    if (!user.active) {
+      setError('Usuário inativo');
+      setLoading(false);
+      return;
+    }
+    if (password.length < 3) {
+      setError('Credenciais inválidas');
+      setLoading(false);
+      return;
+    }
+
+    setClientSession({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      prefeituraId: user.prefeituraId,
+      prefeituraName: user.prefeituraName,
+    });
+
+    router.push('/dashboard');
   }
 
   return (

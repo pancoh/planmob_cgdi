@@ -6,6 +6,7 @@ import { LayoutDashboard, FileText, Settings, LogOut, Menu, X } from 'lucide-rea
 import { useState } from 'react';
 import { SessionData } from '@/types/auth';
 import { ROLES } from '@/lib/constants/perfis';
+import { clearClientSession } from '@/lib/auth/client-session';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,10 +25,9 @@ export default function AppShell({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  function handleLogout() {
+    clearClientSession();
     router.push('/login');
-    router.refresh();
   }
 
   const initials = session.name
