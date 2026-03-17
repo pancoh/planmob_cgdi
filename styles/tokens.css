@@ -1,0 +1,98 @@
+:root {
+  /* Primary — Teal */
+  --primary-50: #edf6f4;
+  --primary-100: #d7ebe7;
+  --primary-200: #b4d7d1;
+  --primary-300: #7fb7ae;
+  --primary-400: #3f9388;
+  --primary-500: #0f766e;
+  --primary-600: #0b5e57;
+  --primary-700: #124842;
+  --primary-800: #163b37;
+  --primary-900: #1b2b2a;
+
+  /* Accent — Burnt Orange */
+  --accent-50: #fbf3ea;
+  --accent-100: #f3e2c8;
+  --accent-200: #e9c99b;
+  --accent-300: #d8a96a;
+  --accent-400: #c5812f;
+  --accent-500: #b45309;
+  --accent-600: #8c4208;
+
+  /* Warning */
+  --warning-50: #fff8e1;
+  --warning-100: #f7edc3;
+  --warning-400: #d9aa1f;
+  --warning-500: #c99700;
+
+  /* Error */
+  --error-50: #fff1ef;
+  --error-100: #fbd6d1;
+  --error-400: #dc6d62;
+  --error-500: #b42318;
+  --error-600: #8e1c13;
+
+  /* Gray */
+  --gray-50: #fafaf8;
+  --gray-100: #f7f7f4;
+  --gray-150: #f0f1ec;
+  --gray-200: #e5e7eb;
+  --gray-300: #d3d8df;
+  --gray-400: #a3acb8;
+  --gray-500: #8a94a3;
+  --gray-600: #5b6470;
+  --gray-700: #3f4752;
+  --gray-800: #1f2937;
+  --gray-900: #16202b;
+
+  /* Surfaces */
+  --surface-base: #f7f7f4;
+  --surface-subtle: #fafaf8;
+  --surface-card: #ffffff;
+  --surface-strong: #f0f1ec;
+
+  /* Borders */
+  --border-soft: #e5e7eb;
+  --border-strong: #d3d8df;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-secondary: #5b6470;
+  --text-muted: #8a94a3;
+
+  /* Status */
+  --success-500: #2e7d32;
+  --status-info: #356c8c;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 88px;
+  --header-height: 70px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(20, 32, 43, 0.04);
+  --shadow-md: 0 8px 18px rgba(20, 32, 43, 0.05);
+  --shadow-lg: 0 14px 28px rgba(20, 32, 43, 0.06);
+  --shadow-xl: 0 24px 46px rgba(20, 32, 43, 0.08);
+
+  /* Transitions */
+  --transition: all 0.18s ease;
+  --transition-slow: all 0.28s ease;
+}
