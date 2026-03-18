@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { LogIn } from 'lucide-react';
 import { setClientSession } from '@/lib/auth/client-session';
 
@@ -106,6 +107,17 @@ export default function LoginForm() {
           Não tem conta?{' '}
           <a href="/cadastro" style={{ color: 'var(--primary-600)' }}>Criar conta</a>
         </p>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
+          <Image
+            src="/logo_mcid.png"
+            alt="Ministério das Cidades"
+            width={220}
+            height={50}
+            style={{ objectFit: 'contain' }}
+            priority
+          />
+        </div>
 
       </form>
     </>
