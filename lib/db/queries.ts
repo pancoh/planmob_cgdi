@@ -24,7 +24,7 @@ export async function getUserByEmail(email: string): Promise<{
 
   if (error || !data) return null;
 
-  const pref = data.prefeituras as { name: string; uf: string } | null;
+  const pref = data.prefeituras as unknown as { name: string; uf: string } | null;
 
   return {
     id: data.id,
@@ -261,7 +261,10 @@ export async function getAllPrefeituras(): Promise<Prefeitura[]> {
   }));
 }
 
-export async function getAllUsuarios(): Promise<Omit<User, 'createdAt'> & { createdAt: string; prefeituraName: string }[]> {
+export async function getAllUsuarios(): Promise<{
+  id: string; name: string; email: string; role: UserRole;
+  prefeituraId: string; prefeituraName: string; active: boolean; createdAt: string;
+}[]> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('usuarios')
@@ -270,7 +273,7 @@ export async function getAllUsuarios(): Promise<Omit<User, 'createdAt'> & { crea
 
   if (error || !data) return [];
   return data.map((u) => {
-    const pref = u.prefeituras as { name: string } | null;
+    const pref = u.prefeituras as unknown as { name: string } | null;
     return {
       id: u.id,
       name: u.name,

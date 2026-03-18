@@ -173,9 +173,10 @@ export default function AnexosClient() {
             <div key={att.id} className="card">
               <div style={{ padding: 16, borderBottom: '1px solid var(--border-soft)' }}>
                 {att.type.startsWith('image/') && att.publicUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={att.publicUrl}
-                    alt={att.name}
+                    alt={att.caption || att.name}
                     style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
                   />
                 ) : (
