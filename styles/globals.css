@@ -1007,12 +1007,73 @@ a:hover {
   font-size: 14px;
 }
 
+/* Cover section */
+.minuta-document .minuta-cover {
+  text-align: center;
+  padding: 48px 0 32px;
+  border-bottom: 3px solid var(--primary-500);
+  margin-bottom: 32px;
+}
+
+.minuta-document .minuta-cover h1 {
+  border-bottom: none;
+  margin-top: 0;
+}
+
+.minuta-document .minuta-subtitle {
+  font-size: 16px;
+  color: var(--gray-500);
+  text-align: center;
+  margin-bottom: 0;
+}
+
+/* Inline TOC in document */
+.minuta-document .minuta-toc-page {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.minuta-document .minuta-toc-heading {
+  font-size: 17px;
+  color: var(--primary-700);
+  border-bottom: 2px solid var(--primary-500);
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+
+.minuta-document .minuta-toc-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.minuta-document .minuta-toc-list li {
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--gray-300);
+}
+
+.minuta-document .minuta-toc-list li:last-child {
+  border-bottom: none;
+}
+
+.minuta-document .minuta-toc-list a {
+  text-decoration: none;
+  color: var(--gray-700);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.minuta-document .minuta-toc-list a:hover {
+  color: var(--primary-600);
+}
+
 .minuta-document h1 {
   font-size: 22px;
   font-weight: 700;
   text-align: center;
   margin-bottom: 32px;
-  color: var(--gray-900);
+  color: var(--primary-700);
 }
 
 .minuta-document h2 {

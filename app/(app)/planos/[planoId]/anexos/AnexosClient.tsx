@@ -6,8 +6,32 @@ import { Upload, Trash2, Image, FileText } from 'lucide-react';
 import { CHAPTERS } from '@/lib/constants/capitulos';
 import { Attachment } from '@/types/plano';
 
-function getAttachmentsKey(planoId: string) {
-  return `planmob:${planoId}:attachments`;
+type ApiAnexo = {
+  id: string;
+  plano_id: string;
+  capitulo_slug: string;
+  name: string;
+  type: string;
+  size: number;
+  caption: string;
+  storage_path: string;
+  created_at: string;
+  publicUrl: string | null;
+};
+
+function mapApiAnexo(a: ApiAnexo): Attachment {
+  return {
+    id: a.id,
+    planoId: a.plano_id,
+    capituloSlug: a.capitulo_slug,
+    name: a.name,
+    type: a.type,
+    size: a.size,
+    caption: a.caption,
+    storagePath: a.storage_path,
+    publicUrl: a.publicUrl ?? undefined,
+    createdAt: a.created_at,
+  };
 }
 
 export default function AnexosClient() {
@@ -15,51 +39,85 @@ export default function AnexosClient() {
   const planoId = params.planoId as string;
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [filterChapter, setFilterChapter] = useState('all');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(getAttachmentsKey(planoId));
-    if (stored) {
-      try { setAttachments(JSON.parse(stored)); } catch { /* ignore */ }
-    }
+    fetch(`/api/planos/${planoId}/anexos`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Erro ao carregar anexos');
+        return res.json();
+      })
+      .then((data: ApiAnexo[]) => {
+        setAttachments(data.map(mapApiAnexo));
+      })
+      .catch((err) => {
+        console.error('[AnexosClient] failed to load anexos:', err);
+      });
   }, [planoId]);
 
-  function saveAttachments(list: Attachment[]) {
-    setAttachments(list);
-    localStorage.setItem(getAttachmentsKey(planoId), JSON.stringify(list));
-  }
-
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
+    setUploading(true);
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const newAttachment: Attachment = {
-          id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          planoId,
-          capituloSlug: filterChapter === 'all' ? 'apresentacao' : filterChapter,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          caption: '',
-          dataUrl: reader.result as string,
-          createdAt: new Date().toISOString(),
-        };
-        saveAttachments([...attachments, newAttachment]);
-      };
-      reader.readAsDataURL(file);
-    });
+    const capituloSlug = filterChapter === 'all' ? 'apresentacao' : filterChapter;
 
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('capituloSlug', capituloSlug);
+        formData.append('caption', '');
+
+        const res = await fetch(`/api/planos/${planoId}/anexos`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const created: ApiAnexo = await res.json();
+          setAttachments((prev) => [...prev, mapApiAnexo(created)]);
+        } else {
+          const data = await res.json();
+          console.error('[AnexosClient] upload error:', data.error);
+        }
+      } catch (err) {
+        console.error('[AnexosClient] upload failed:', err);
+      }
+    }
+
+    setUploading(false);
     e.target.value = '';
   }
 
-  function removeAttachment(id: string) {
-    saveAttachments(attachments.filter((a) => a.id !== id));
+  async function removeAttachment(id: string) {
+    try {
+      const res = await fetch(`/api/planos/${planoId}/anexos`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setAttachments((prev) => prev.filter((a) => a.id !== id));
+      }
+    } catch (err) {
+      console.error('[AnexosClient] delete failed:', err);
+    }
   }
 
-  function updateCaption(id: string, caption: string) {
-    saveAttachments(attachments.map((a) => (a.id === id ? { ...a, caption } : a)));
+  async function updateCaption(id: string, caption: string) {
+    // Optimistic update
+    setAttachments((prev) => prev.map((a) => (a.id === id ? { ...a, caption } : a)));
+
+    try {
+      await fetch(`/api/planos/${planoId}/anexos/${id}/caption`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption }),
+      });
+    } catch (err) {
+      console.error('[AnexosClient] caption update failed:', err);
+    }
   }
 
   const filtered = filterChapter === 'all'
@@ -72,9 +130,16 @@ export default function AnexosClient() {
         <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--gray-900)' }}>
           Anexos (Fotos, mapas, gráficos)
         </h2>
-        <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
-          <Upload size={18} /> Adicionar Arquivo
-          <input type="file" multiple accept="image/*,.pdf,.doc,.docx" onChange={handleUpload} style={{ display: 'none' }} />
+        <label className="btn btn-primary" style={{ cursor: uploading ? 'wait' : 'pointer', opacity: uploading ? 0.7 : 1 }}>
+          <Upload size={18} /> {uploading ? 'Enviando...' : 'Adicionar Arquivo'}
+          <input
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx"
+            onChange={handleUpload}
+            style={{ display: 'none' }}
+            disabled={uploading}
+          />
         </label>
       </div>
 
@@ -107,9 +172,9 @@ export default function AnexosClient() {
           {filtered.map((att) => (
             <div key={att.id} className="card">
               <div style={{ padding: 16, borderBottom: '1px solid var(--border-soft)' }}>
-                {att.type.startsWith('image/') && att.dataUrl ? (
+                {att.type.startsWith('image/') && att.publicUrl ? (
                   <img
-                    src={att.dataUrl}
+                    src={att.publicUrl}
                     alt={att.name}
                     style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
                   />

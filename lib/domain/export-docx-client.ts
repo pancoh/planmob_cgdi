@@ -6,44 +6,132 @@ import {
   AlignmentType,
   Packer,
   BorderStyle,
+  TabStopPosition,
+  TabStopType,
+  PageBreak,
+  ImageRun,
 } from 'docx';
 import { CHAPTERS } from '@/lib/constants/capitulos';
 import {
   TextFreeData,
   StructuredChapterData,
   ReviewChapterData,
+  Attachment,
 } from '@/types/plano';
 
+async function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const maxWidth = 500;
+      const ratio = Math.min(maxWidth / img.naturalWidth, 1);
+      resolve({ width: Math.round(img.naturalWidth * ratio), height: Math.round(img.naturalHeight * ratio) });
+    };
+    img.onerror = () => resolve({ width: 400, height: 300 });
+    img.src = dataUrl;
+  });
+}
+
 export async function buildDocxClient(
+  planoId: string,
   chapterDataMap: Record<string, string>,
   municipio: string,
   uf: string
 ): Promise<Blob> {
+  // Load attachments
+  let attachments: Attachment[] = [];
+  const rawAtts = localStorage.getItem(`planmob:${planoId}:attachments`);
+  if (rawAtts) {
+    try { attachments = JSON.parse(rawAtts); } catch { /* ignore */ }
+  }
   const paragraphs: Paragraph[] = [];
 
+  // Cover page
   paragraphs.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { before: 3000, after: 200 },
       children: [
         new TextRun({
           text: 'PLANO DE MOBILIDADE URBANA',
           bold: true,
-          size: 36,
+          size: 44,
           font: 'IBM Plex Sans',
+          color: '0f766e',
         }),
       ],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 600 },
+      spacing: { after: 200 },
       children: [
         new TextRun({
           text: `Município de ${municipio} — ${uf}`,
           size: 28,
           font: 'IBM Plex Sans',
+          color: '4b5563',
         }),
       ],
+    }),
+    new Paragraph({
+      children: [new PageBreak()],
+    })
+  );
+
+  // Table of Contents
+  paragraphs.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { after: 300 },
+      border: {
+        bottom: { style: BorderStyle.SINGLE, size: 2, color: '0f766e' },
+      },
+      children: [
+        new TextRun({
+          text: 'Sumário',
+          bold: true,
+          size: 28,
+          color: '0f766e',
+          font: 'IBM Plex Sans',
+        }),
+      ],
+    })
+  );
+
+  for (const ch of CHAPTERS) {
+    paragraphs.push(
+      new Paragraph({
+        spacing: { after: 80 },
+        tabStops: [
+          {
+            type: TabStopType.RIGHT,
+            position: TabStopPosition.MAX,
+            leader: 'dot' as const,
+          },
+        ],
+        children: [
+          new TextRun({
+            text: ch.title,
+            size: 22,
+            font: 'IBM Plex Sans',
+          }),
+        ],
+      })
+    );
+  }
+  if (attachments.length > 0) {
+    paragraphs.push(
+      new Paragraph({
+        spacing: { after: 80 },
+        children: [new TextRun({ text: 'Anexos', size: 22, font: 'IBM Plex Sans' })],
+      })
+    );
+  }
+
+  paragraphs.push(
+    new Paragraph({
+      spacing: { before: 400 },
+      children: [new PageBreak()],
     })
   );
 
@@ -303,6 +391,76 @@ export async function buildDocxClient(
           })
         );
       });
+    }
+  }
+
+  // Anexos section
+  if (attachments.length > 0) {
+    paragraphs.push(
+      new Paragraph({ children: [new PageBreak()] }),
+      new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: '0f766e' } },
+        children: [new TextRun({ text: 'Anexos', bold: true, size: 28, color: '0f766e', font: 'IBM Plex Sans' })],
+      })
+    );
+
+    // Group by chapter
+    const byChapter = new Map<string, Attachment[]>();
+    for (const att of attachments) {
+      const list = byChapter.get(att.capituloSlug) ?? [];
+      list.push(att);
+      byChapter.set(att.capituloSlug, list);
+    }
+
+    for (const [slug, atts] of byChapter.entries()) {
+      const chapter = CHAPTERS.find((c) => c.slug === slug);
+      paragraphs.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 300, after: 100 },
+          children: [new TextRun({ text: chapter?.title ?? slug, bold: true, size: 24, font: 'IBM Plex Sans' })],
+        })
+      );
+
+      for (const att of atts) {
+        if (att.type.startsWith('image/') && att.dataUrl) {
+          const base64 = att.dataUrl.split(',')[1];
+          const ext = att.type.split('/')[1].replace('jpeg', 'jpg') as 'png' | 'jpg' | 'gif' | 'bmp';
+          const dims = await getImageDimensions(att.dataUrl);
+          paragraphs.push(
+            new Paragraph({
+              spacing: { before: 100, after: 60 },
+              children: [
+                new ImageRun({
+                  data: base64,
+                  transformation: { width: dims.width, height: dims.height },
+                  type: ext === 'jpg' ? 'jpg' : ext,
+                }),
+              ],
+            })
+          );
+          if (att.caption.trim()) {
+            paragraphs.push(
+              new Paragraph({
+                spacing: { after: 200 },
+                children: [new TextRun({ text: att.caption, italics: true, size: 20, font: 'IBM Plex Sans', color: '64748b' })],
+              })
+            );
+          }
+        } else {
+          paragraphs.push(
+            new Paragraph({
+              spacing: { after: 100 },
+              children: [
+                new TextRun({ text: `Arquivo: ${att.name}`, bold: true, size: 22, font: 'IBM Plex Sans' }),
+                ...(att.caption.trim() ? [new TextRun({ text: ` — ${att.caption}`, size: 22, font: 'IBM Plex Sans' })] : []),
+              ],
+            })
+          );
+        }
+      }
     }
   }
 

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn } from 'lucide-react';
-import { findUserByEmail } from '@/lib/mock-data';
 import { setClientSession } from '@/lib/auth/client-session';
 
 export default function LoginForm() {
@@ -13,38 +12,32 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const user = findUserByEmail(email);
-    if (!user) {
-      setError('Credenciais inválidas');
-      setLoading(false);
-      return;
-    }
-    if (!user.active) {
-      setError('Usuário inativo');
-      setLoading(false);
-      return;
-    }
-    if (password.length < 3) {
-      setError('Credenciais inválidas');
-      setLoading(false);
-      return;
-    }
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setClientSession({
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      prefeituraId: user.prefeituraId,
-      prefeituraName: user.prefeituraName,
-    });
+      const data = await res.json().catch(() => ({}));
 
-    router.push('/dashboard');
+      if (!res.ok) {
+        setError(data.error ?? 'Credenciais inválidas');
+        setLoading(false);
+        return;
+      }
+
+      setClientSession(data.user);
+      router.push('/dashboard');
+    } catch {
+      setError('Erro ao conectar com o servidor');
+      setLoading(false);
+    }
   }
 
   return (
@@ -109,12 +102,11 @@ export default function LoginForm() {
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          <strong>Credenciais demo:</strong><br />
-          admin@planmob.gov.br / qualquer senha<br />
-          coordenador@planmob.gov.br / qualquer senha<br />
-          tecnico@planmob.gov.br / qualquer senha
-        </div>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-muted)' }}>
+          Não tem conta?{' '}
+          <a href="/cadastro" style={{ color: 'var(--primary-600)' }}>Criar conta</a>
+        </p>
+
       </form>
     </>
   );

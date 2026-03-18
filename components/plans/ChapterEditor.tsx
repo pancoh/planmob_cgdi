@@ -86,6 +86,15 @@ export default function ChapterEditor({
     timerRef.current = setTimeout(() => {
       localStorage.setItem(getStorageKey(planoId, chapter.slug), JSON.stringify(newData));
       setSaveStatus('saved');
+
+      // Sync to Supabase (fire-and-forget)
+      fetch(`/api/planos/${planoId}/capitulos/${chapter.slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: newData }),
+      }).catch((err) => {
+        console.error('[ChapterEditor] sync to API failed:', err);
+      });
     }, 800);
   }, [planoId, chapter.slug]);
 

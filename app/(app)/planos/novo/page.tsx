@@ -11,31 +11,39 @@ export default function NovoPlanoPage() {
   const [anoReferencia, setAnoReferencia] = useState(new Date().getFullYear());
   const [orgao, setOrgao] = useState('');
   const [coordenador, setCoordenador] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
+    setLoading(true);
 
-    // Mock: create plan in localStorage
-    const newPlan = {
-      id: `plan-${Date.now()}`,
-      title,
-      anoReferencia,
-      orgaoResponsavel: orgao,
-      coordenador,
-      prefeituraId: 'pref-1',
-      prefeituraName: 'Jaraguá',
-      uf: 'GO',
-      status: 'em_elaboracao' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const res = await fetch('/api/planos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          anoReferencia,
+          orgaoResponsavel: orgao,
+          coordenador,
+        }),
+      });
 
-    // Store in localStorage
-    const existing = JSON.parse(localStorage.getItem('planmob:plans') || '[]');
-    existing.push(newPlan);
-    localStorage.setItem('planmob:plans', JSON.stringify(existing));
+      const data = await res.json();
 
-    router.push(`/planos/${newPlan.id}`);
+      if (!res.ok) {
+        setError(data.error ?? 'Erro ao criar plano');
+        setLoading(false);
+        return;
+      }
+
+      router.push(`/planos/${data.id}`);
+    } catch {
+      setError('Erro ao conectar com o servidor');
+      setLoading(false);
+    }
   }
 
   return (
@@ -52,6 +60,19 @@ export default function NovoPlanoPage() {
 
       <div className="card" style={{ maxWidth: 640 }}>
         <div className="card-body">
+          {error && (
+            <div style={{
+              background: 'var(--error-50)',
+              border: '1px solid var(--error-100)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 16px',
+              marginBottom: 20,
+              color: 'var(--error-500)',
+              fontSize: 13,
+            }}>
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label" htmlFor="title">
@@ -115,8 +136,8 @@ export default function NovoPlanoPage() {
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
               <Link href="/planos" className="btn btn-secondary">Cancelar</Link>
-              <button type="submit" className="btn btn-primary">
-                <Save size={18} /> Criar Plano
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                <Save size={18} /> {loading ? 'Criando...' : 'Criar Plano'}
               </button>
             </div>
           </form>

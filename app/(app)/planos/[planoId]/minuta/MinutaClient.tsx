@@ -1,16 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Download, FileText } from 'lucide-react';
 import MinutaPreview from '@/components/plans/MinutaPreview';
-import { MOCK_PLANS } from '@/lib/mock-data';
 import { CHAPTERS } from '@/lib/constants/capitulos';
 import { buildMinutaHtml } from '@/lib/domain/build-minuta';
+
+function getStorageKey(planoId: string, slug: string) {
+  return `planmob:${planoId}:${slug}`;
+}
 
 function collectChapterData(planoId: string): Record<string, string> {
   const data: Record<string, string> = {};
   for (const ch of CHAPTERS) {
-    const raw = localStorage.getItem(`planmob:${planoId}:${ch.slug}`);
+    const raw = localStorage.getItem(getStorageKey(planoId, ch.slug));
     if (raw) data[ch.slug] = raw;
   }
   return data;
@@ -20,9 +24,43 @@ export default function MinutaClient() {
   const params = useParams();
   const planoId = params.planoId as string;
 
-  const plan = MOCK_PLANS.find((p) => p.id === planoId);
-  const municipio = plan?.prefeituraName || 'Município';
-  const uf = plan?.uf || 'UF';
+  const [municipio, setMunicipio] = useState('Município');
+  const [uf, setUf] = useState('UF');
+
+  // On init: fetch plan info and all chapter data, populate localStorage if empty
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Fetch plan to get municipio/uf
+        const planRes = await fetch(`/api/planos/${planoId}`);
+        if (planRes.ok) {
+          const plan = await planRes.json();
+          setMunicipio(plan.prefeituraName ?? 'Município');
+          setUf(plan.uf ?? 'UF');
+        }
+      } catch (err) {
+        console.error('[MinutaClient] failed to load plan info:', err);
+      }
+
+      try {
+        // Fetch all chapter data and populate localStorage where empty
+        const capRes = await fetch(`/api/planos/${planoId}/capitulos`);
+        if (capRes.ok) {
+          const capData: Record<string, Record<string, unknown>> = await capRes.json();
+          for (const [slug, data] of Object.entries(capData)) {
+            const key = getStorageKey(planoId, slug);
+            if (!localStorage.getItem(key)) {
+              localStorage.setItem(key, JSON.stringify(data));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[MinutaClient] failed to load chapter data:', err);
+      }
+    }
+
+    loadData();
+  }, [planoId]);
 
   function handleExportPdf() {
     const html = buildMinutaHtml(planoId, municipio, uf);
@@ -60,7 +98,7 @@ export default function MinutaClient() {
   async function handleExportDocx() {
     const chapterDataMap = collectChapterData(planoId);
     const { buildDocxClient } = await import('@/lib/domain/export-docx-client');
-    const blob = await buildDocxClient(chapterDataMap, municipio, uf);
+    const blob = await buildDocxClient(planoId, chapterDataMap, municipio, uf);
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

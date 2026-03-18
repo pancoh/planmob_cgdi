@@ -1,5 +1,5 @@
 import { CHAPTERS } from '@/lib/constants/capitulos';
-import { TextFreeData, StructuredChapterData, ReviewChapterData } from '@/types/plano';
+import { TextFreeData, StructuredChapterData, ReviewChapterData, Attachment } from '@/types/plano';
 
 function placeholder(text: string): string {
   return `<span class="minuta-placeholder">[${text}]</span>`;
@@ -16,8 +16,33 @@ function escapeHtml(text: string): string {
 export function buildMinutaHtml(planoId: string, municipio: string, uf: string): string {
   const parts: string[] = [];
 
+  // Load attachments
+  let attachments: Attachment[] = [];
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(`planmob:${planoId}:attachments`);
+    if (raw) {
+      try { attachments = JSON.parse(raw); } catch { /* ignore */ }
+    }
+  }
+
+  // Cover / Title
+  parts.push(`<div class="minuta-cover">`);
   parts.push(`<h1>PLANO DE MOBILIDADE URBANA</h1>`);
-  parts.push(`<p style="text-align:center;font-size:16px;margin-bottom:32px;">Município de ${municipio} — ${uf}</p>`);
+  parts.push(`<p class="minuta-subtitle">Município de ${municipio} — ${uf}</p>`);
+  parts.push(`</div>`);
+
+  // Table of Contents
+  parts.push(`<div class="minuta-toc-page">`);
+  parts.push(`<h2 class="minuta-toc-heading">Sumário</h2>`);
+  parts.push(`<ol class="minuta-toc-list">`);
+  for (const ch of CHAPTERS) {
+    parts.push(`<li><a href="#ch-${ch.slug}">${ch.title}</a></li>`);
+  }
+  if (attachments.length > 0) {
+    parts.push(`<li><a href="#ch-anexos">Anexos</a></li>`);
+  }
+  parts.push(`</ol>`);
+  parts.push(`</div>`);
 
   for (const chapter of CHAPTERS) {
     const storageKey = `planmob:${planoId}:${chapter.slug}`;
@@ -136,6 +161,38 @@ export function buildMinutaHtml(planoId: string, municipio: string, uf: string):
         parts.push(`<ul>${data.instrumentoNormativo.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`);
       } else {
         parts.push(`<p>${placeholder('Não selecionado')}</p>`);
+      }
+    }
+  }
+
+  // Anexos section
+  if (attachments.length > 0) {
+    parts.push(`<h2 id="ch-anexos">Anexos</h2>`);
+
+    // Group by chapter
+    const byChapter = new Map<string, Attachment[]>();
+    for (const att of attachments) {
+      const list = byChapter.get(att.capituloSlug) ?? [];
+      list.push(att);
+      byChapter.set(att.capituloSlug, list);
+    }
+
+    for (const [slug, atts] of byChapter.entries()) {
+      const chapter = CHAPTERS.find((c) => c.slug === slug);
+      const chapterTitle = chapter ? chapter.title : slug;
+      parts.push(`<h3>${escapeHtml(chapterTitle)}</h3>`);
+
+      for (const att of atts) {
+        if (att.type.startsWith('image/') && att.dataUrl) {
+          parts.push(`<figure style="margin: 16px 0; text-align: center;">`);
+          parts.push(`<img src="${att.dataUrl}" alt="${escapeHtml(att.name)}" style="max-width: 100%; max-height: 400px; border: 1px solid #e2e8f0; border-radius: 4px;" />`);
+          if (att.caption.trim()) {
+            parts.push(`<figcaption style="font-size: 12px; color: #64748b; margin-top: 6px;">${escapeHtml(att.caption)}</figcaption>`);
+          }
+          parts.push(`</figure>`);
+        } else {
+          parts.push(`<p>📎 <strong>${escapeHtml(att.name)}</strong>${att.caption.trim() ? ` — ${escapeHtml(att.caption)}` : ''}</p>`);
+        }
       }
     }
   }

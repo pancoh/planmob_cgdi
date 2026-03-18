@@ -90,5 +90,7 @@ export type Attachment = {
   size: number;
   caption: string;
   dataUrl?: string;
+  publicUrl?: string;
+  storagePath?: string;
   createdAt: string;
 };
